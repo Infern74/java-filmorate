@@ -1,13 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @RestController
@@ -18,7 +20,7 @@ public class FilmController {
     private static final LocalDate CINEMA_BIRTHDAY = LocalDate.of(1895, 12, 28);
 
     @PostMapping
-    public Film create(@Valid @RequestBody Film film) {
+    public Film create(@RequestBody Film film) {
         validateFilm(film);
         film.setId(idCounter++);
         films.put(film.getId(), film);
@@ -40,6 +42,7 @@ public class FilmController {
 
     @GetMapping
     public Collection<Film> getAll() {
+        log.info("Получен запрос на список всех фильмов. Текущее количество: {}", films.size());
         return films.values();
     }
 
