@@ -55,6 +55,10 @@ public class FilmController {
             log.error("Описание превышает 200 символов");
             throw new ValidationException("Максимальная длина описания — 200 символов");
         }
+        if (film.getReleaseDate() == null) {
+            log.error("Дата релиза не указана");
+            throw new ValidationException("Дата релиза обязательна");
+        }
         if (film.getReleaseDate().isBefore(CINEMA_BIRTHDAY)) {
             log.error("Некорректная дата релиза: {}", film.getReleaseDate());
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
