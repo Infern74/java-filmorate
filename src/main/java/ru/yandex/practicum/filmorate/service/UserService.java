@@ -33,12 +33,10 @@ public class UserService {
         User user = getUserOrThrow(userId);
         User friend = getUserOrThrow(friendId);
 
-        if (!user.getFriends().remove(friendId)) {
-            log.warn("Попытка удаления несуществующего друга: {} у пользователя {}", friendId, userId);
-            throw new UserNotFoundException("Друг не найден");
-        }
+        user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
-        log.info("Пользователи {} и {} больше не друзья", userId, friendId);
+
+        log.info("Удалена дружба между {} и {}", userId, friendId);
     }
 
     public void removeUser(int userId) {
