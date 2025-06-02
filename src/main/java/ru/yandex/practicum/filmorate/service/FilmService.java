@@ -22,6 +22,22 @@ public class FilmService {
         this.userStorage = userStorage;
     }
 
+    public Film create(Film film) {
+        return filmStorage.create(film);
+    }
+
+    public Film update(Film film) {
+        return filmStorage.update(film);
+    }
+
+    public Collection<Film> getAll() {
+        return filmStorage.getAll();
+    }
+
+    public Film getById(int id) {
+        return filmStorage.getById(id);
+    }
+
     public void addLike(int filmId, int userId) {
         log.debug("Добавление лайка фильму {} от пользователя {}", filmId, userId);
         Film film = getFilmOrThrow(filmId);
@@ -40,10 +56,7 @@ public class FilmService {
 
     public List<Film> getPopularFilms(int count) {
         log.info("Запрос {} популярных фильмов", count);
-        return filmStorage.getAll().stream()
-                .sorted(Comparator.comparingInt(f -> -f.getLikes().size()))
-                .limit(count)
-                .toList();
+        return filmStorage.getPopularFilms(count);
     }
 
     private Film getFilmOrThrow(int id) {

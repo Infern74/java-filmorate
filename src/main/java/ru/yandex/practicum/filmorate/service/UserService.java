@@ -19,6 +19,22 @@ public class UserService {
         this.userStorage = userStorage;
     }
 
+    public User create(User user) {
+        return userStorage.create(user);
+    }
+
+    public User update(User user) {
+        return userStorage.update(user);
+    }
+
+    public Collection<User> getAll() {
+        return userStorage.getAll();
+    }
+
+    public User getById(int id) {
+        return userStorage.getById(id);
+    }
+
     public void addFriend(int userId, int friendId) {
         log.debug("Добавление друга: {} -> {}", userId, friendId);
         User user = getUserOrThrow(userId);

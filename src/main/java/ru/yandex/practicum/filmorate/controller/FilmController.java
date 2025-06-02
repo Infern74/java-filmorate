@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -15,13 +14,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/films")
 public class FilmController {
-    private final FilmStorage filmStorage;
     private final FilmService filmService;
     private static final LocalDate CINEMA_BIRTHDAY = LocalDate.of(1895, 12, 28);
 
     @Autowired
-    public FilmController(FilmStorage filmStorage, FilmService filmService) {
-        this.filmStorage = filmStorage;
+    public FilmController(FilmService filmService) {
         this.filmService = filmService;
     }
 
@@ -29,7 +26,7 @@ public class FilmController {
     public Film create(@RequestBody Film film) {
         log.info("Запрос на создание фильма: {}", film);
         validateFilm(film);
-        Film createdFilm = filmStorage.create(film);
+        Film createdFilm = filmService.create(film);
         log.info("Создан новый фильм: {}", createdFilm);
         return createdFilm;
     }
@@ -38,20 +35,19 @@ public class FilmController {
     public Film update(@RequestBody Film film) {
         log.info("Запрос на обновление фильма: {}", film);
         validateFilm(film);
-        Film updatedFilm = filmStorage.update(film);
+        Film updatedFilm = filmService.update(film);
         log.info("Обновлен фильм: {}", updatedFilm);
         return updatedFilm;
     }
 
     @GetMapping
     public Collection<Film> getAll() {
-        return filmStorage.getAll();
+        return filmService.getAll();
     }
 
     @GetMapping("/{id}")
     public Film getById(@PathVariable int id) {
-        if (id <= 0) throw new ValidationException("ID должен быть положительным");
-        return filmStorage.getById(id);
+        return filmService.getById(id);
     }
 
     @PutMapping("/{id}/like/{userId}")

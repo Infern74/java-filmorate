@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -16,12 +15,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/users")
 public class UserController {
-    private final UserStorage userStorage;
     private final UserService userService;
 
     @Autowired
-    public UserController(UserStorage userStorage, UserService userService) {
-        this.userStorage = userStorage;
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
@@ -30,7 +27,7 @@ public class UserController {
         log.info("Запрос на создание пользователя: {}", user);
         validateUser(user);
         setUserNameIfEmpty(user);
-        User createdUser = userStorage.create(user);
+        User createdUser = userService.create(user);
         log.info("Создан новый пользователь: {}", createdUser);
         return createdUser;
     }
@@ -40,20 +37,19 @@ public class UserController {
         log.info("Запрос на обновление пользователя: {}", user);
         validateUser(user);
         setUserNameIfEmpty(user);
-        User updatedUser = userStorage.update(user);
+        User updatedUser = userService.update(user);
         log.info("Обновлен пользователь: {}", updatedUser);
         return updatedUser;
     }
 
     @GetMapping
     public Collection<User> getAll() {
-        return userStorage.getAll();
+        return userService.getAll();
     }
 
     @GetMapping("/{id}")
     public User getById(@PathVariable int id) {
-        if (id <= 0) throw new ValidationException("ID должен быть положительным");
-        return userStorage.getById(id);
+        return userService.getById(id);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
