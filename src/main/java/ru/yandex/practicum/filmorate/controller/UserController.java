@@ -58,7 +58,15 @@ public class UserController {
             @PathVariable int friendId) {
         log.info("Запрос на добавление в друзья: {} -> {}", id, friendId);
         userService.addFriend(id, friendId);
-        log.info("Пользователи {} и {} теперь друзья", id, friendId);
+        log.info("Пользователи {} , {} теперь друзья", id, friendId);
+    }
+
+    @PutMapping("/{id}/friends/{friendId}/confirm")
+    public void confirmFriend(
+            @PathVariable int id,
+            @PathVariable int friendId) {
+        log.info("Подтверждение дружбы: {} -> {}", id, friendId);
+        userService.confirmFriend(id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
