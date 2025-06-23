@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import java.util.*;
@@ -36,12 +37,26 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
-        log.debug("Добавление друга: {} -> {}", userId, friendId);
+        log.debug("Запрос на дружбу: {} -> {}", userId, friendId);
         User user = getUserOrThrow(userId);
         User friend = getUserOrThrow(friendId);
 
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        user.getFriends().put(friendId, FriendshipStatus.PENDING);
+        friend.getFriends().put(userId, FriendshipStatus.PENDING);
+    }
+
+    public void confirmFriend(int userId, int friendId) {
+        log.debug("Подтверждение дружбы: {} подтверждает {}", userId, friendId);
+        User user = getUserOrThrow(userId);
+        User friend = getUserOrThrow(friendId);
+
+        if (!user.getFriends().containsKey(friendId) ||
+                !friend.getFriends().containsKey(userId)) {
+            throw new IllegalArgumentException("Запрос на дружбу не найден");
+        }
+
+        user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
+        friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
     }
 
     public void removeFriend(int userId, int friendId) {
@@ -57,7 +72,9 @@ public class UserService {
     public void removeUser(int userId) {
         User user = getUserOrThrow(userId);
 
-        for (Integer friendId : user.getFriends()) {
+        Set<Integer> friendIds = new HashSet<>(user.getFriends().keySet());
+
+        for (Integer friendId : friendIds) {
             User friend = userStorage.getById(friendId);
             friend.getFriends().remove(userId);
         }
@@ -67,19 +84,17 @@ public class UserService {
 
     public List<User> getFriends(int userId) {
         User user = getUserOrThrow(userId);
-        List<User> friends = new ArrayList<>();
-        for (Integer friendId : user.getFriends()) {
-            friends.add(userStorage.getById(friendId));
-        }
-        return friends;
+        return user.getFriends().keySet().stream()
+                .map(userStorage::getById)
+                .collect(Collectors.toList());
     }
 
     public List<User> getCommonFriends(int userId, int otherId) {
         User user = getUserOrThrow(userId);
         User other = getUserOrThrow(otherId);
 
-        return user.getFriends().stream()
-                .filter(id -> other.getFriends().contains(id))
+        return user.getFriends().keySet().stream()
+                .filter(id -> other.getFriends().containsKey(id))
                 .map(userStorage::getById)
                 .collect(Collectors.toList());
     }
