@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
+
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -58,15 +59,16 @@ public class UserController {
             @PathVariable int friendId) {
         log.info("Запрос на добавление в друзья: {} -> {}", id, friendId);
         userService.addFriend(id, friendId);
-        log.info("Пользователи {} , {} теперь друзья", id, friendId);
+        log.info("Пользователь {} отправил заявку в друзья пользователю {}", id, friendId);
     }
 
     @PutMapping("/{id}/friends/{friendId}/confirm")
     public void confirmFriend(
             @PathVariable int id,
             @PathVariable int friendId) {
-        log.info("Подтверждение дружбы: {} -> {}", id, friendId);
+        log.info("Подтверждение дружбы: {} подтверждает {}", id, friendId);
         userService.confirmFriend(id, friendId);
+        log.info("Пользователь {} подтвердил дружбу с пользователем {}", id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
@@ -75,6 +77,7 @@ public class UserController {
             @PathVariable int id,
             @PathVariable int friendId) {
         userService.removeFriend(id, friendId);
+        log.info("Пользователь {} удалил из друзей пользователя {}", id, friendId);
     }
 
     @GetMapping("/{id}/friends")
