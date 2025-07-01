@@ -15,15 +15,19 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Repository
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
     private final JdbcTemplate jdbcTemplate;
+    private final GenreDbStorage genreDbStorage;
 
     @Autowired
-    public FilmDbStorage(JdbcTemplate jdbcTemplate) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, GenreDbStorage genreDbStorage) {
         this.jdbcTemplate = jdbcTemplate;
+        this.genreDbStorage = genreDbStorage;
     }
 
     @Override
@@ -76,7 +80,15 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> getAll() {
         String sql = "SELECT f.*, m.name AS mpa_name FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id";
-        return jdbcTemplate.query(sql, this::mapRowToFilm);
+        List<Film> films = jdbcTemplate.query(sql, this::mapRowToFilm);
+
+        if (films.isEmpty()) {
+            return films;
+        }
+
+        loadGenresForFilms(films);
+
+        return films;
     }
 
     @Override
@@ -84,7 +96,9 @@ public class FilmDbStorage implements FilmStorage {
         String sql = "SELECT f.*, m.name AS mpa_name FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id WHERE f.id = ?";
         try {
             Film film = jdbcTemplate.queryForObject(sql, this::mapRowToFilm, id);
-            loadGenresForFilm(film);
+
+            loadGenresForFilms(Collections.singletonList(film));
+
             return film;
         } catch (EmptyResultDataAccessException e) {
             throw new FilmNotFoundException("Фильм с id=" + id + " не найден");
@@ -129,18 +143,45 @@ public class FilmDbStorage implements FilmStorage {
         );
     }
 
-    private void loadGenresForFilm(Film film) {
-        String sql = "SELECT g.id, g.name FROM film_genres fg JOIN genres g ON fg.genre_id = g.id " +
-                "WHERE fg.film_id = ? " +
-                "ORDER BY g.id";
-        Set<Genre> genres = new HashSet<>(jdbcTemplate.query(sql, this::mapRowToGenre, film.getId()));
-        film.setGenres(genres);
+    private void loadGenresForFilms(List<Film> films) {
+        List<Integer> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toList());
+
+        Map<Integer, Set<Genre>> genresByFilmId = loadGenresByFilmIds(filmIds);
+
+        films.forEach(film ->
+                film.setGenres(genresByFilmId.getOrDefault(film.getId(), Collections.emptySet()))
+        );
     }
 
-    private Genre mapRowToGenre(ResultSet rs, int rowNum) throws SQLException {
-        return Genre.builder()
-                .id(rs.getInt("id"))
-                .name(rs.getString("name"))
-                .build();
+    private Map<Integer, Set<Genre>> loadGenresByFilmIds(List<Integer> filmIds) {
+        String inClause = filmIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+
+        String sql = "SELECT fg.film_id, fg.genre_id " +
+                "FROM film_genres fg " +
+                "WHERE fg.film_id IN (" + inClause + ")";
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+
+        Map<Integer, Set<Genre>> genresByFilmId = new HashMap<>();
+
+        Map<Integer, Genre> allGenres = genreDbStorage.getAll().stream()
+                .collect(Collectors.toMap(Genre::getId, Function.identity()));
+
+        for (Map<String, Object> row : rows) {
+            Integer filmId = (Integer) row.get("film_id");
+            Integer genreId = (Integer) row.get("genre_id");
+
+            Genre genre = allGenres.get(genreId);
+            if (genre != null) {
+                genresByFilmId.computeIfAbsent(filmId, k -> new HashSet<>())
+                        .add(genre);
+            }
+        }
+
+        return genresByFilmId;
     }
 }

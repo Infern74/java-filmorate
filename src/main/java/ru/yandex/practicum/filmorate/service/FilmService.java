@@ -1,7 +1,5 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -13,11 +11,9 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class FilmService {
-    private final Logger log = LoggerFactory.getLogger(FilmService.class);
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
     private final LikeDao likeDao;
@@ -50,22 +46,19 @@ public class FilmService {
 
 
     public void addLike(int filmId, int userId) {
-        Film film = getFilmOrThrow(filmId);
+        getFilmOrThrow(filmId);
         getUserOrThrow(userId);
         likeDao.addLike(filmId, userId);
     }
 
     public void removeLike(int filmId, int userId) {
-        Film film = getFilmOrThrow(filmId);
+        getFilmOrThrow(filmId);
         getUserOrThrow(userId);
         likeDao.removeLike(filmId, userId);
     }
 
     public List<Film> getPopularFilms(int count) {
-        List<Integer> popularFilmIds = likeDao.getPopularFilms(count);
-        return popularFilmIds.stream()
-                .map(filmStorage::getById)
-                .collect(Collectors.toList());
+        return likeDao.getPopularFilms(count);
     }
 
     private Film getFilmOrThrow(int id) {

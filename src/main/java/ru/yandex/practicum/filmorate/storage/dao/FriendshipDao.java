@@ -1,8 +1,10 @@
 package ru.yandex.practicum.filmorate.storage.dao;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.List;
 
@@ -13,6 +15,14 @@ public class FriendshipDao {
     public FriendshipDao(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
+
+    private final RowMapper<User> userRowMapper = (rs, rowNum) -> User.builder()
+            .id(rs.getInt("id"))
+            .email(rs.getString("email"))
+            .login(rs.getString("login"))
+            .name(rs.getString("name"))
+            .birthday(rs.getDate("birthday").toLocalDate())
+            .build();
 
     public void addFriend(int userId, int friendId) {
         String sql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, ?)";
@@ -29,19 +39,12 @@ public class FriendshipDao {
         jdbcTemplate.update(sql, userId, friendId);
     }
 
-    public List<Integer> getFriends(int userId) {
-        String sql = "SELECT friend_id FROM friendships WHERE user_id = ?";
-        return jdbcTemplate.queryForList(sql, Integer.class, userId);
-    }
+    public List<User> getFriends(int userId) {
+        String sql = "SELECT u.id, u.email, u.login, u.name, u.birthday " +
+                "FROM friendships f " +
+                "JOIN users u ON f.friend_id = u.id " +
+                "WHERE f.user_id = ?";
 
-    public FriendshipStatus getFriendshipStatus(int userId, int friendId) {
-        String sql = "SELECT status FROM friendships WHERE user_id = ? AND friend_id = ?";
-        try {
-            return FriendshipStatus.valueOf(
-                    jdbcTemplate.queryForObject(sql, String.class, userId, friendId)
-            );
-        } catch (Exception e) {
-            return null;
-        }
+        return jdbcTemplate.query(sql, userRowMapper, userId);
     }
 }

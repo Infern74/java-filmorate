@@ -1,7 +1,5 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -11,11 +9,11 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserStorage userStorage;
     private final FriendshipDao friendshipDao;
 
@@ -44,8 +42,8 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
-        User user = getUserOrThrow(userId);
-        User friend = getUserOrThrow(friendId);
+        getUserOrThrow(userId);
+        getUserOrThrow(friendId);
         friendshipDao.addFriend(userId, friendId);
     }
 
@@ -63,22 +61,22 @@ public class UserService {
 
     public List<User> getFriends(int userId) {
         getUserOrThrow(userId);
-        List<Integer> friendIds = friendshipDao.getFriends(userId);
-        return friendIds.stream()
-                .map(userStorage::getById)
-                .collect(Collectors.toList());
+        return friendshipDao.getFriends(userId);
     }
 
     public List<User> getCommonFriends(int userId, int otherId) {
-        User user = getUserOrThrow(userId);
-        User other = getUserOrThrow(otherId);
+        getUserOrThrow(userId);
+        getUserOrThrow(otherId);
 
-        List<Integer> userFriends = friendshipDao.getFriends(userId);
-        List<Integer> otherFriends = friendshipDao.getFriends(otherId);
+        List<User> userFriends = friendshipDao.getFriends(userId);
+        List<User> otherFriends = friendshipDao.getFriends(otherId);
+
+        Set<Integer> otherFriendIds = otherFriends.stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
 
         return userFriends.stream()
-                .filter(otherFriends::contains)
-                .map(userStorage::getById)
+                .filter(user -> otherFriendIds.contains(user.getId()))
                 .collect(Collectors.toList());
     }
 
