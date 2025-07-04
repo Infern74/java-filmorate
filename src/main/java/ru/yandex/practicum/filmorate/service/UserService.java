@@ -1,23 +1,28 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.dao.FriendshipDao;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
-import java.util.*;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserStorage userStorage;
+    private final FriendshipDao friendshipDao;
 
     @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(
+            @Qualifier("userDbStorage") UserStorage userStorage,
+            FriendshipDao friendshipDao) {
         this.userStorage = userStorage;
+        this.friendshipDao = friendshipDao;
     }
 
     public User create(User user) {
@@ -37,65 +42,41 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
-        log.debug("Запрос на дружбу: {} -> {}", userId, friendId);
-        User user = getUserOrThrow(userId);
-        User friend = getUserOrThrow(friendId);
-
-        user.getFriends().put(friendId, FriendshipStatus.PENDING);
-        friend.getFriends().put(userId, FriendshipStatus.PENDING);
+        getUserOrThrow(userId);
+        getUserOrThrow(friendId);
+        friendshipDao.addFriend(userId, friendId);
     }
 
     public void confirmFriend(int userId, int friendId) {
-        log.debug("Подтверждение дружбы: {} подтверждает {}", userId, friendId);
-        User user = getUserOrThrow(userId);
-        User friend = getUserOrThrow(friendId);
-
-        if (!user.getFriends().containsKey(friendId) ||
-                !friend.getFriends().containsKey(userId)) {
-            throw new IllegalArgumentException("Запрос на дружбу не найден");
-        }
-
-        user.getFriends().put(friendId, FriendshipStatus.CONFIRMED);
-        friend.getFriends().put(userId, FriendshipStatus.CONFIRMED);
+        getUserOrThrow(userId);
+        getUserOrThrow(friendId);
+        friendshipDao.confirmFriend(userId, friendId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        User user = getUserOrThrow(userId);
-        User friend = getUserOrThrow(friendId);
-
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
-
-        log.info("Удалена дружба между {} и {}", userId, friendId);
-    }
-
-    public void removeUser(int userId) {
-        User user = getUserOrThrow(userId);
-
-        Set<Integer> friendIds = new HashSet<>(user.getFriends().keySet());
-
-        for (Integer friendId : friendIds) {
-            User friend = userStorage.getById(friendId);
-            friend.getFriends().remove(userId);
-        }
-
-        userStorage.delete(userId);
+        getUserOrThrow(userId);
+        getUserOrThrow(friendId);
+        friendshipDao.removeFriend(userId, friendId);
     }
 
     public List<User> getFriends(int userId) {
-        User user = getUserOrThrow(userId);
-        return user.getFriends().keySet().stream()
-                .map(userStorage::getById)
-                .collect(Collectors.toList());
+        getUserOrThrow(userId);
+        return friendshipDao.getFriends(userId);
     }
 
     public List<User> getCommonFriends(int userId, int otherId) {
-        User user = getUserOrThrow(userId);
-        User other = getUserOrThrow(otherId);
+        getUserOrThrow(userId);
+        getUserOrThrow(otherId);
 
-        return user.getFriends().keySet().stream()
-                .filter(id -> other.getFriends().containsKey(id))
-                .map(userStorage::getById)
+        List<User> userFriends = friendshipDao.getFriends(userId);
+        List<User> otherFriends = friendshipDao.getFriends(otherId);
+
+        Set<Integer> otherFriendIds = otherFriends.stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        return userFriends.stream()
+                .filter(user -> otherFriendIds.contains(user.getId()))
                 .collect(Collectors.toList());
     }
 
