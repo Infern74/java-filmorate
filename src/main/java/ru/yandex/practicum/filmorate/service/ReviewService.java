@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.EventType;
@@ -25,15 +24,15 @@ public class ReviewService {
 
     public Review create(Review review) {
         validateUserAndFilm(review.getUserId(), review.getFilmId());
-        Review created= reviewStorage.create(review);
-        eventLogger.log(created.getUserId(), EventType.REVIEW, OperationType.ADD,created.getReviewId());
+        Review created = reviewStorage.create(review);
+        eventLogger.log(created.getUserId(), EventType.REVIEW, OperationType.ADD, created.getReviewId());
         return created;
     }
 
     public Review update(Review review) {
 
-        Review updated= reviewStorage.update(review);
-        eventLogger.log(updated.getUserId(),EventType.REVIEW,OperationType.UPDATE,updated.getReviewId());
+        Review updated = reviewStorage.update(review);
+        eventLogger.log(updated.getUserId(), EventType.REVIEW, OperationType.UPDATE, updated.getReviewId());
         return updated;
     }
 
