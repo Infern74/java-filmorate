@@ -19,17 +19,17 @@ public class FeedDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void addEvent (FeedEvent event) {
+    public void addEvent(FeedEvent event) {
         String sql = "INSERT INTO feed_events (timestamp,user_id,event_type,operation,entity_id) VALUES (?,?,?,?,?)";
         jdbcTemplate.update(sql, event.getTimestamp(), event.getUserId(), event.getEventType().name(), event.getOperationType().name(), event.getEntityId());
     }
 
-    public List<FeedEvent> getEventsByUserId (int userId) {
+    public List<FeedEvent> getEventsByUserId(int userId) {
         String sql = "SELECT * FROM feed_events WHERE user_id=? ORDER BY timestamp ASC";
         return jdbcTemplate.query(sql, this::mapRowToFeedEvent, userId);
     }
 
-    private FeedEvent mapRowToFeedEvent (ResultSet rs, int rowNum) throws SQLException {
+    private FeedEvent mapRowToFeedEvent(ResultSet rs, int rowNum) throws SQLException {
         return FeedEvent.builder()
                 .eventId(rs.getInt("event_id"))
                 .timestamp(rs.getLong("timestamp"))
