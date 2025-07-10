@@ -12,7 +12,7 @@ import java.util.List;
 public class FeedService {
     private final FeedDao feedDao;
 
-    public List<FeedEvent> getUserFeed (int userId) {
+    public List<FeedEvent> getUserFeed(int userId) {
         return feedDao.getEventsByUserId(userId);
     }
 

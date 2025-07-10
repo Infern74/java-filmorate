@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
@@ -47,14 +46,14 @@ public class FilmService {
         getFilmOrThrow(filmId);
         getUserOrThrow(userId);
         likeDao.addLike(filmId, userId);
-        eventLogger.log(userId, EventType.LIKE, OperationType.ADD,filmId);
+        eventLogger.log(userId, EventType.LIKE, OperationType.ADD, filmId);
     }
 
     public void removeLike(int filmId, int userId) {
         getFilmOrThrow(filmId);
         getUserOrThrow(userId);
         likeDao.removeLike(filmId, userId);
-        eventLogger.log(userId,EventType.LIKE,OperationType.REMOVE,filmId);
+        eventLogger.log(userId, EventType.LIKE, OperationType.REMOVE, filmId);
     }
 
     public List<Film> getPopularFilms(int count) {

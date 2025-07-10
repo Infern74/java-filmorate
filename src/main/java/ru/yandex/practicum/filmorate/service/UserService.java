@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.EventType;
@@ -43,7 +42,7 @@ public class UserService {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         friendshipDao.addFriend(userId, friendId);
-        eventLogger.log(userId, EventType.FRIEND, OperationType.ADD,friendId);
+        eventLogger.log(userId, EventType.FRIEND, OperationType.ADD, friendId);
     }
 
     public void confirmFriend(int userId, int friendId) {
@@ -57,7 +56,7 @@ public class UserService {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         friendshipDao.removeFriend(userId, friendId);
-        eventLogger.log(userId,EventType.FRIEND,OperationType.REMOVE,friendId);
+        eventLogger.log(userId, EventType.FRIEND, OperationType.REMOVE, friendId);
     }
 
     public List<User> getFriends(int userId) {

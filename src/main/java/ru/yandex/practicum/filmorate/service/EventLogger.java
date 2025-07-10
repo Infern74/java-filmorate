@@ -12,8 +12,8 @@ import ru.yandex.practicum.filmorate.storage.dao.FeedDao;
 public class EventLogger {
     private final FeedDao feedDao;
 
-    public void log (int userId, EventType type, OperationType operation,int entityId){
-        FeedEvent event=FeedEvent.builder()
+    public void log(int userId, EventType type, OperationType operation, int entityId) {
+        FeedEvent event = FeedEvent.builder()
                 .timestamp(System.currentTimeMillis())
                 .userId(userId)
                 .eventType(type)
