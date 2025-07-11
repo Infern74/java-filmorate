@@ -81,4 +81,16 @@ public class FilmService {
             return filmStorage.getFilmsByDirectorSortedByLikes(directorId);
         }
     }
+
+    public void delete(int id) {
+        filmStorage.deleteFilm(id); // Используем новый метод
+    }
+
+    @Deprecated
+    public Film deleteAndReturn(int id) {
+        Film film = filmStorage.getById(id);
+        filmStorage.deleteFilm(id);
+        return film;
+    }
+
 }
