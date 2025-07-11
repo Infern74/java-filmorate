@@ -79,4 +79,8 @@ public class InMemoryFilmStorage implements FilmStorage {
                 film.getDirectors().stream().anyMatch(d -> d.getId() == directorId);
     }
 
+    @Override
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        return Collections.emptyList();
+    }
 }

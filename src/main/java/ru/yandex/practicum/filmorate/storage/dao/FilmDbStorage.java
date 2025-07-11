@@ -12,6 +12,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -147,6 +148,35 @@ public class FilmDbStorage implements FilmStorage {
             loadDirectorsForFilms(films);
         }
 
+        return films;
+    }
+
+    @Override
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        String sql = "SELECT f.*, m.name AS mpa_name, COUNT(l.user_id) AS likes_count " +
+                "FROM films f " +
+                "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "LEFT JOIN likes l ON f.id = l.film_id " +
+                (genreId != null ? "JOIN film_genres fg ON f.id = fg.film_id AND fg.genre_id = ? " : "") +
+                (year != null ? "WHERE EXTRACT(YEAR FROM f.release_date) = ? " : "") +
+                "GROUP BY f.id, m.name " +
+                "ORDER BY likes_count DESC " +
+                "LIMIT ?";
+
+        List<Film> films = jdbcTemplate.query(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            int paramIndex = 1;
+            if (genreId != null) {
+                ps.setInt(paramIndex++, genreId);
+            }
+            if (year != null) {
+                ps.setInt(paramIndex++, year);
+            }
+            ps.setInt(paramIndex, count);
+            return ps;
+        }, this::mapRowToFilm);
+
+        loadGenresForFilms(films);
         return films;
     }
 

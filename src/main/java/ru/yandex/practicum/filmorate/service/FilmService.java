@@ -59,8 +59,8 @@ public class FilmService {
         likeDao.removeLike(filmId, userId);
     }
 
-    public List<Film> getPopularFilms(int count) {
-        return likeDao.getPopularFilms(count);
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        return filmStorage.getPopularFilms(count, genreId, year);
     }
 
     private Film getFilmOrThrow(int id) {
