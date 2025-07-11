@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -18,6 +19,7 @@ import ru.yandex.practicum.filmorate.storage.dao.MpaDbStorage;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +34,7 @@ class FilmDbStorageTest {
     private final FilmDbStorage filmStorage;
     private final MpaDbStorage mpaStorage;
     private final GenreDbStorage genreStorage;
+    private final JdbcTemplate jdbcTemplate;
 
     private Film testFilm;
 
@@ -123,5 +126,32 @@ class FilmDbStorageTest {
 
         assertThatThrownBy(() -> filmStorage.getById(createdFilm.getId()))
                 .isInstanceOf(FilmNotFoundException.class);
+    }
+
+    @Test
+    void getPopularFilms_ShouldReturnTopFilmsFilteredByGenreAndYear() {
+        Film film1 = filmStorage.create(testFilm);
+        Film film2 = filmStorage.create(testFilm.toBuilder()
+                .name("Less Popular Film")
+                .releaseDate(LocalDate.of(2000, 1, 1))
+                .build());
+
+        jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)",
+                "user1@example.com", "user1", "User One", LocalDate.of(1990, 1, 1));
+        jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)",
+                "user2@example.com", "user2", "User Two", LocalDate.of(1992, 2, 2));
+
+        jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film1.getId(), 1);
+        jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film1.getId(), 2);
+        jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film2.getId(), 1);
+
+        int genreId = testFilm.getGenres().iterator().next().getId();
+        int year = testFilm.getReleaseDate().getYear();
+
+        List<Film> popularFilms = filmStorage.getPopularFilms(10, genreId, year);
+
+        assertThat(popularFilms).hasSize(2);
+        assertThat(popularFilms.get(0).getId()).isEqualTo(film1.getId());
+        assertThat(popularFilms.get(1).getId()).isEqualTo(film2.getId());
     }
 }
