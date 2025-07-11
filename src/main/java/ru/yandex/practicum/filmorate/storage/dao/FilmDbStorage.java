@@ -48,7 +48,7 @@ public class FilmDbStorage implements FilmStorage {
             updateFilmDirectors(film);
         }
 
-        return film;
+        return getById(id);
     }
 
     @Override
@@ -77,7 +77,7 @@ public class FilmDbStorage implements FilmStorage {
             updateFilmDirectors(film);
         }
 
-        return film;
+        return getById(film.getId());
     }
 
     @Override
@@ -145,6 +145,30 @@ public class FilmDbStorage implements FilmStorage {
                 "ORDER BY likes_count DESC";
 
         List<Film> films = jdbcTemplate.query(sql, this::mapRowToFilm, directorId);
+
+        if (!films.isEmpty()) {
+            loadGenresForFilms(films);
+            loadDirectorsForFilms(films);
+        }
+
+        return films;
+    }
+
+    @Override
+    public List<Film> getCommonFilms(int userId, int friendId) {
+        String sql = "SELECT f.*, m.name AS mpa_name, COUNT(l.user_id) AS likes_count " +
+                "FROM films f " +
+                "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "JOIN likes l ON f.id = l.film_id " +
+                "WHERE f.id IN ( " +
+                "    SELECT film_id FROM likes WHERE user_id = ? " +
+                "    INTERSECT " +
+                "    SELECT film_id FROM likes WHERE user_id = ? " +
+                ") " +
+                "GROUP BY f.id, m.name " +
+                "ORDER BY likes_count DESC";
+
+        List<Film> films = jdbcTemplate.query(sql, this::mapRowToFilm, userId, friendId);
 
         if (!films.isEmpty()) {
             loadGenresForFilms(films);
@@ -327,7 +351,7 @@ public class FilmDbStorage implements FilmStorage {
 
             Genre genre = allGenres.get(genreId);
             if (genre != null) {
-                genresByFilmId.computeIfAbsent(filmId, k -> new HashSet<>())
+                genresByFilmId.computeIfAbsent(filmId, k -> new LinkedHashSet<>())
                         .add(genre);
             }
         }

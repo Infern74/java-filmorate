@@ -195,6 +195,31 @@ class FilmDbStorageTest {
     }
 
     @Test
+    void getCommonFilms_ShouldReturnCommonFilmsSortedByLikes() {
+
+        Film film1 = filmStorage.create(testFilm.toBuilder().name("Film 1").build());
+        Film film2 = filmStorage.create(testFilm.toBuilder().name("Film 2").build());
+        Film film3 = filmStorage.create(testFilm.toBuilder().name("Film 3").build());
+
+        jdbcTemplate.update("INSERT INTO users (id, email, login, name, birthday) VALUES (?, ?, ?, ?, ?)",
+                1, "user1@example.com", "user1", "User One", LocalDate.of(1990, 1, 1));
+        jdbcTemplate.update("INSERT INTO users (id, email, login, name, birthday) VALUES (?, ?, ?, ?, ?)",
+                2, "user2@example.com", "user2", "User Two", LocalDate.of(1992, 2, 2));
+
+        jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film1.getId(), 1);
+        jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film2.getId(), 1);
+        jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film2.getId(), 2);
+        jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", film3.getId(), 2);
+
+        List<Film> commonFilms = filmStorage.getCommonFilms(1, 2);
+
+        assertThat(commonFilms)
+                .hasSize(1)
+                .extracting(Film::getName)
+                .containsExactly("Film 2");
+    }
+
+    @Test
     void searchFilms_ShouldReturnFilmsByTitleAndDirector() {
         jdbcTemplate.update("DELETE FROM likes");
         jdbcTemplate.update("DELETE FROM film_genres");
