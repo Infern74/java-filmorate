@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
@@ -103,12 +104,14 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Film getById(int id) {
         String sql = "SELECT f.*, m.name AS mpa_name FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id WHERE f.id = ?";
-        Film film = jdbcTemplate.queryForObject(sql, this::mapRowToFilm, id);
-
-        loadGenresForFilms(List.of(film));
-        loadDirectorsForFilms(List.of(film));
-
-        return film;
+        try {
+            Film film = jdbcTemplate.queryForObject(sql, this::mapRowToFilm, id);
+            loadGenresForFilms(List.of(film));
+            loadDirectorsForFilms(List.of(film));
+            return film;
+        } catch (EmptyResultDataAccessException e) {
+            throw new FilmNotFoundException("Фильм с id=" + id + " не найден");
+        }
     }
 
     @Override
