@@ -22,6 +22,7 @@ public class RecommendationDao {
             result.computeIfAbsent(userId, k -> new HashSet<>()).add(filmId);
         }
         return result;
+        
     }
 }
 
