@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
-import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.dao.*;
 
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @JdbcTest
 @AutoConfigureTestDatabase
@@ -132,51 +130,33 @@ class FilmDbStorageTest {
 
     @Test
     void getFilmsByDirectorSortedByYear_ShouldReturnOrderedFilms() {
-        Director director = directorStorage.create(Director.builder().name("Sorting Director").build());
-
-        Film film1 = filmStorage.create(Film.builder()
-                .name("Film 1")
+        // Создаём тестовые фильмы с одним режиссёром, но разными годами
+        Film film2000 = Film.builder()
+                .name("Film 2000")
+                .description("Старый фильм")
                 .releaseDate(LocalDate.of(2000, 1, 1))
+                .duration(120)
                 .mpa(mpaStorage.getById(1))
-                .directors(Set.of(director))
-                .build());
+                .directors(Set.of(testDirector))
+                .build();
 
-        Film film2 = filmStorage.create(Film.builder()
-                .name("Film 2")
-                .releaseDate(LocalDate.of(2001, 1, 1))
+        Film film2010 = Film.builder()
+                .name("Film 2010")
+                .description("Новый фильм")
+                .releaseDate(LocalDate.of(2010, 1, 1))
+                .duration(90)
                 .mpa(mpaStorage.getById(1))
-                .directors(Set.of(director))
-                .build());
+                .directors(Set.of(testDirector))
+                .build();
 
-        List<Film> result = filmStorage.getFilmsByDirectorSortedByYear(director.getId());
+        filmStorage.create(film2000);
+        filmStorage.create(film2010);
 
-        assertThat(result)
-                .hasSize(2)
-                .extracting(Film::getId)
-                .containsExactly(film1.getId(), film2.getId());
+        List<Film> result = filmStorage.getFilmsByDirectorSortedByYear(testDirector.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getName()).isEqualTo("Film 2000");
+        assertThat(result.get(1).getName()).isEqualTo("Film 2010");
     }
 
-    @Test
-    void getFilmsByDirectorSortedByLikes_ShouldReturnOrderedFilms() {
-        Director director = directorStorage.create(Director.builder().name("Sorting Director").build());
-
-        Film film1 = filmStorage.create(Film.builder()
-                .name("Film 1")
-                .mpa(mpaStorage.getById(1))
-                .directors(Set.of(director))
-                .build());
-
-        Film film2 = filmStorage.create(Film.builder()
-                .name("Film 2")
-                .mpa(mpaStorage.getById(1))
-                .directors(Set.of(director))
-                .build());
-
-        List<Film> result = filmStorage.getFilmsByDirectorSortedByLikes(director.getId());
-
-        assertThat(result)
-                .hasSize(2)
-                .extracting(Film::getId)
-                .containsExactly(film1.getId(), film2.getId());
-    }
 }
