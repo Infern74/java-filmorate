@@ -351,7 +351,7 @@ public class FilmDbStorage implements FilmStorage {
 
             Genre genre = allGenres.get(genreId);
             if (genre != null) {
-                genresByFilmId.computeIfAbsent(filmId, k -> new HashSet<>())
+                genresByFilmId.computeIfAbsent(filmId, k -> new LinkedHashSet<>())
                         .add(genre);
             }
         }
