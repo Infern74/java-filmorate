@@ -7,10 +7,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
@@ -98,4 +95,17 @@ public class LikeDao {
             this.genreName = genreName;
         }
     }
+
+    public Map<Integer, Integer> getLikesCountForFilms() {
+        String sql = "SELECT film_id, COUNT(user_id) as likes_count FROM likes GROUP BY film_id";
+
+        return jdbcTemplate.query(sql, rs -> {
+            Map<Integer, Integer> result = new HashMap<>();
+            while (rs.next()) {
+                result.put(rs.getInt("film_id"), rs.getInt("likes_count"));
+            }
+            return result;
+        });
+    }
+
 }

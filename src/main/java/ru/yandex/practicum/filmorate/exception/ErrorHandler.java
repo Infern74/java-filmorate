@@ -55,4 +55,11 @@ public class ErrorHandler {
     static class ErrorResponse {
         private String error;
     }
+
+    @ExceptionHandler(DirectorNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleDirectorNotFound(DirectorNotFoundException e) {
+        return new ErrorResponse(e.getMessage());
+    }
+
 }

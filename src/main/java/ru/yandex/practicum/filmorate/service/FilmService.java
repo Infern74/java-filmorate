@@ -23,6 +23,7 @@ public class FilmService {
     private final UserStorage userStorage;
     private final LikeDao likeDao;
     private final EventLogger eventLogger;
+    private final DirectorService directorService;
 
 
     public Film create(Film film) {
@@ -56,8 +57,8 @@ public class FilmService {
         eventLogger.log(userId, EventType.LIKE, OperationType.REMOVE, filmId);
     }
 
-    public List<Film> getPopularFilms(int count) {
-        return likeDao.getPopularFilms(count);
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        return filmStorage.getPopularFilms(count, genreId, year);
     }
 
     private Film getFilmOrThrow(int id) {
@@ -67,6 +68,17 @@ public class FilmService {
     private void getUserOrThrow(int id) {
         if (userStorage.getById(id) == null) {
             throw new UserNotFoundException("Пользователь с id=" + id + " не найден");
+        }
+    }
+
+    public List<Film> getFilmsByDirector(int directorId, String sortBy) {
+        // Проверка что режиссер существует
+        directorService.getById(directorId);
+
+        if (sortBy.equals("year")) {
+            return filmStorage.getFilmsByDirectorSortedByYear(directorId);
+        } else {
+            return filmStorage.getFilmsByDirectorSortedByLikes(directorId);
         }
     }
 }
