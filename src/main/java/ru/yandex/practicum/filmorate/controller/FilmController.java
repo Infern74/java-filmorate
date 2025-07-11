@@ -3,12 +3,15 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.DirectorNotFoundException;
 import ru.yandex.practicum.filmorate.exception.GenreNotFoundException;
 import ru.yandex.practicum.filmorate.exception.MpaNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.DirectorService;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
@@ -25,13 +28,15 @@ public class FilmController {
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
     private static final LocalDate CINEMA_BIRTHDAY = LocalDate.of(1895, 12, 28);
+    private final DirectorService directorService;
 
     @Autowired
     public FilmController(FilmService filmService, MpaStorage mpaStorage,
-                          GenreStorage genreStorage) {
+                          GenreStorage genreStorage, DirectorService directorService) {
         this.filmService = filmService;
         this.mpaStorage = mpaStorage;
         this.genreStorage = genreStorage;
+        this.directorService = directorService;
     }
 
     @PostMapping
@@ -40,6 +45,7 @@ public class FilmController {
         validateFilm(film);
         validateMpa(film.getMpa().getId());
         validateGenres(film.getGenres());
+        validateDirectors(film.getDirectors());
         Film createdFilm = filmService.create(film);
         log.info("Создан новый фильм: {}", createdFilm);
         return createdFilm;
@@ -51,6 +57,7 @@ public class FilmController {
         validateFilm(film);
         validateMpa(film.getMpa().getId());
         validateGenres(film.getGenres());
+        validateDirectors(film.getDirectors());
         Film updatedFilm = filmService.update(film);
         log.info("Обновлен фильм: {}", updatedFilm);
         return updatedFilm;
@@ -86,6 +93,20 @@ public class FilmController {
             @RequestParam(required = false) Integer year) {
         log.info("Запрос {} популярных фильмов, genreId: {}, year: {}", count, genreId, year);
         return filmService.getPopularFilms(count, genreId, year);
+    }
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getFilmsByDirector(
+            @PathVariable int directorId,
+            @RequestParam(defaultValue = "likes") String sortBy) {
+
+        log.info("Запрос фильмов режиссера {} с сортировкой по {}", directorId, sortBy);
+
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new ValidationException("Параметр sortBy может быть только 'year' или 'likes'");
+        }
+
+        return filmService.getFilmsByDirector(directorId, sortBy);
     }
 
     private void validateFilm(Film film) {
@@ -126,6 +147,18 @@ public class FilmController {
                     genreStorage.getById(genre.getId());
                 } catch (GenreNotFoundException e) {
                     throw new GenreNotFoundException("Жанр с id=" + genre.getId() + " не найден");
+                }
+            }
+        }
+    }
+
+    private void validateDirectors(Set<Director> directors) {
+        if (directors != null) {
+            for (Director director : directors) {
+                try {
+                    directorService.getById(director.getId());
+                } catch (DirectorNotFoundException e) {
+                    throw new DirectorNotFoundException("Режиссер с id=" + director.getId() + " не найден");
                 }
             }
         }

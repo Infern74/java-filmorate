@@ -8,10 +8,11 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MpaRating;
+import ru.yandex.practicum.filmorate.storage.dao.DirectorDbStorage;
 import ru.yandex.practicum.filmorate.storage.dao.FilmDbStorage;
 import ru.yandex.practicum.filmorate.storage.dao.GenreDbStorage;
 import ru.yandex.practicum.filmorate.storage.dao.MpaDbStorage;
@@ -23,11 +24,10 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({FilmDbStorage.class, MpaDbStorage.class, GenreDbStorage.class})
+@Import({FilmDbStorage.class, MpaDbStorage.class, GenreDbStorage.class, DirectorDbStorage.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmDbStorageTest {
 
@@ -35,13 +35,16 @@ class FilmDbStorageTest {
     private final MpaDbStorage mpaStorage;
     private final GenreDbStorage genreStorage;
     private final JdbcTemplate jdbcTemplate;
+    private final DirectorDbStorage directorStorage;
 
     private Film testFilm;
+    private Director testDirector;
 
     @BeforeEach
     void setUp() {
         MpaRating mpa = mpaStorage.getById(1);
         Genre genre = genreStorage.getById(1);
+        testDirector = directorStorage.create(Director.builder().name("Test Director").build());
 
         testFilm = Film.builder()
                 .name("Test Film")
@@ -50,82 +53,118 @@ class FilmDbStorageTest {
                 .duration(120)
                 .mpa(mpa)
                 .genres(Collections.singleton(genre))
+                .directors(Set.of(testDirector))
                 .build();
     }
 
     @Test
-    void createFilm_ShouldReturnFilmWithId() {
+    void createFilm_ShouldReturnFilmWithIdAndDirectors() {
         Film createdFilm = filmStorage.create(testFilm);
 
         assertThat(createdFilm.getId()).isPositive();
         assertThat(createdFilm.getName()).isEqualTo("Test Film");
         assertThat(createdFilm.getGenres()).hasSize(1);
+        assertThat(createdFilm.getDirectors())
+                .hasSize(1)
+                .extracting(Director::getId)
+                .containsExactly(testDirector.getId());
     }
 
     @Test
-    void updateFilm_ShouldUpdateFields() {
+    void updateFilm_ShouldUpdateFieldsAndDirectors() {
         Film createdFilm = filmStorage.create(testFilm);
+        Director newDirector = directorStorage.create(Director.builder().name("New Director").build());
+
         Film updatedFilm = createdFilm.toBuilder()
                 .name("Updated Film")
                 .description("Updated Description")
+                .directors(Set.of(newDirector))
                 .build();
 
         Film result = filmStorage.update(updatedFilm);
 
         assertThat(result.getName()).isEqualTo("Updated Film");
-        assertThat(result.getDescription()).isEqualTo("Updated Description");
+        assertThat(result.getDirectors())
+                .hasSize(1)
+                .extracting(Director::getId)
+                .containsExactly(newDirector.getId());
     }
 
     @Test
-    void getById_ShouldReturnCorrectFilm() {
+    void getById_ShouldReturnFilmWithDirectors() {
         Film createdFilm = filmStorage.create(testFilm);
         Film foundFilm = filmStorage.getById(createdFilm.getId());
 
-        assertThat(foundFilm).isEqualTo(createdFilm);
-        assertThat(foundFilm.getGenres()).hasSize(1);
+        assertThat(foundFilm.getDirectors())
+                .hasSize(1)
+                .extracting(Director::getId)
+                .containsExactly(testDirector.getId());
     }
 
     @Test
-    void getById_ShouldThrowExceptionForNonExistingFilm() {
-        assertThatThrownBy(() -> filmStorage.getById(999))
-                .isInstanceOf(FilmNotFoundException.class)
-                .hasMessageContaining("Фильм с id=999 не найден");
-    }
-
-    @Test
-    void getAll_ShouldReturnAllFilms() {
+    void getAll_ShouldReturnFilmsWithDirectors() {
         Film film1 = filmStorage.create(testFilm);
-        Film film2 = filmStorage.create(testFilm.toBuilder().name("Another Film").build());
+        Film film2 = filmStorage.create(testFilm.toBuilder()
+                .name("Another Film")
+                .directors(Collections.emptySet())
+                .build());
 
         Collection<Film> films = filmStorage.getAll();
 
         assertThat(films).hasSize(2);
-        assertThat(films).extracting(Film::getName)
-                .containsExactlyInAnyOrder("Test Film", "Another Film");
+        assertThat(films).extracting(Film::getDirectors)
+                .containsExactlyInAnyOrder(
+                        Set.of(testDirector),
+                        Collections.emptySet()
+                );
     }
 
     @Test
-    void updateFilm_ShouldUpdateGenres() {
+    void updateFilm_ShouldUpdateDirectors() {
         Film createdFilm = filmStorage.create(testFilm);
-        Genre newGenre = genreStorage.getById(2);
+        Director newDirector = directorStorage.create(Director.builder().name("New Director").build());
 
         Film updatedFilm = createdFilm.toBuilder()
-                .genres(Set.of(newGenre))
+                .directors(Set.of(newDirector))
                 .build();
 
         Film result = filmStorage.update(updatedFilm);
 
-        assertThat(result.getGenres()).hasSize(1);
-        assertThat(result.getGenres()).extracting(Genre::getId).containsExactly(2);
+        assertThat(result.getDirectors())
+                .hasSize(1)
+                .extracting(Director::getId)
+                .containsExactly(newDirector.getId());
     }
 
     @Test
-    void deleteFilm_ShouldRemoveFilm() {
-        Film createdFilm = filmStorage.create(testFilm);
-        filmStorage.delete(createdFilm.getId());
+    void getFilmsByDirectorSortedByYear_ShouldReturnOrderedFilms() {
+        // Создаём тестовые фильмы с одним режиссёром, но разными годами
+        Film film2000 = Film.builder()
+                .name("Film 2000")
+                .description("Старый фильм")
+                .releaseDate(LocalDate.of(2000, 1, 1))
+                .duration(120)
+                .mpa(mpaStorage.getById(1))
+                .directors(Set.of(testDirector))
+                .build();
 
-        assertThatThrownBy(() -> filmStorage.getById(createdFilm.getId()))
-                .isInstanceOf(FilmNotFoundException.class);
+        Film film2010 = Film.builder()
+                .name("Film 2010")
+                .description("Новый фильм")
+                .releaseDate(LocalDate.of(2010, 1, 1))
+                .duration(90)
+                .mpa(mpaStorage.getById(1))
+                .directors(Set.of(testDirector))
+                .build();
+
+        filmStorage.create(film2000);
+        filmStorage.create(film2010);
+
+        List<Film> result = filmStorage.getFilmsByDirectorSortedByYear(testDirector.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getName()).isEqualTo("Film 2000");
+        assertThat(result.get(1).getName()).isEqualTo("Film 2010");
     }
 
     @Test

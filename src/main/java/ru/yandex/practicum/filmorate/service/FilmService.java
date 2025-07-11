@@ -17,15 +17,17 @@ public class FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
     private final LikeDao likeDao;
+    private final DirectorService directorService;
 
     @Autowired
     public FilmService(
             @Qualifier("filmDbStorage") FilmStorage filmStorage,
             @Qualifier("userDbStorage") UserStorage userStorage,
-            LikeDao likeDao) {
+            LikeDao likeDao, DirectorService directorService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.likeDao = likeDao;
+        this.directorService = directorService;
     }
 
     public Film create(Film film) {
@@ -68,6 +70,17 @@ public class FilmService {
     private void getUserOrThrow(int id) {
         if (userStorage.getById(id) == null) {
             throw new UserNotFoundException("Пользователь с id=" + id + " не найден");
+        }
+    }
+
+    public List<Film> getFilmsByDirector(int directorId, String sortBy) {
+        // Проверка что режиссер существует
+        directorService.getById(directorId);
+
+        if (sortBy.equals("year")) {
+            return filmStorage.getFilmsByDirectorSortedByYear(directorId);
+        } else {
+            return filmStorage.getFilmsByDirectorSortedByLikes(directorId);
         }
     }
 }
