@@ -1,5 +1,8 @@
 DELETE FROM mpa_ratings;
 DELETE FROM genres;
+DELETE FROM film_directors;
+DELETE FROM directors;
+DELETE FROM films;
 
 INSERT INTO mpa_ratings (id, name) VALUES (1, 'G');
 INSERT INTO mpa_ratings (id, name) VALUES (2, 'PG');

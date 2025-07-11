@@ -7,9 +7,8 @@ import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class InMemoryFilmStorage implements FilmStorage {
@@ -57,6 +56,27 @@ public class InMemoryFilmStorage implements FilmStorage {
             throw new FilmNotFoundException("Фильм с id=" + id + " не найден");
         }
         return films.get(id);
+    }
+
+    @Override
+    public List<Film> getFilmsByDirectorSortedByYear(int directorId) {
+        return films.values().stream()
+                .filter(film -> hasDirector(film, directorId))
+                .sorted(Comparator.comparing(Film::getReleaseDate))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Film> getFilmsByDirectorSortedByLikes(int directorId) {
+        return films.values().stream()
+                .filter(film -> hasDirector(film, directorId))
+                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
+                .collect(Collectors.toList());
+    }
+
+    private boolean hasDirector(Film film, int directorId) {
+        return film.getDirectors() != null &&
+                film.getDirectors().stream().anyMatch(d -> d.getId() == directorId);
     }
 
 }
