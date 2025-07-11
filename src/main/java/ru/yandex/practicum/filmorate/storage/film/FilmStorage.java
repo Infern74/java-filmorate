@@ -13,6 +13,8 @@ public interface FilmStorage {
 
     Film delete(int id);
 
+    void deleteFilm(int id);
+
     Collection<Film> getAll();
 
     Film getById(int id);

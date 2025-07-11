@@ -57,10 +57,19 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User delete(int id) {
-        User user = getById(id);
-        String sql = "DELETE FROM users WHERE id = ?";
-        jdbcTemplate.update(sql, id);
+        User user = getById(id); // Проверяем существование
+        deleteUser(id); // Используем новую реализацию
         return user;
+    }
+
+    @Override
+    public void deleteUser(int id) {
+        // Каскадное удаление связей выполняется БД (ON DELETE CASCADE)
+        String sql = "DELETE FROM users WHERE id = ?";
+        int deleted = jdbcTemplate.update(sql, id);
+        if (deleted == 0) {
+            throw new UserNotFoundException("Пользователь с id=" + id + " не найден");
+        }
     }
 
     @Override
