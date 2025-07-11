@@ -43,6 +43,13 @@ public class ErrorHandler {
         return new ErrorResponse(e.getMessage());
     }
 
+    @ExceptionHandler(ReviewNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleReviewNotFoundException(final ReviewNotFoundException e) {
+        log.warn("Отзыв не найден: {}", e.getMessage());
+        return new ErrorResponse("Отзыв не найден: " + e.getMessage());
+    }
+
     @Data
     @AllArgsConstructor
     static class ErrorResponse {
