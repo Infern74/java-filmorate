@@ -16,6 +16,7 @@ import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -107,6 +108,14 @@ public class FilmController {
         }
 
         return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
+    @GetMapping("/search")
+    public List<Film> searchFilms(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "title,director") String[] by) {
+        log.info("Поиск фильмов по запросу: '{}', параметры поиска: {}", query, Arrays.toString(by));
+        return filmService.searchFilms(query, by);
     }
 
     private void validateFilm(Film film) {

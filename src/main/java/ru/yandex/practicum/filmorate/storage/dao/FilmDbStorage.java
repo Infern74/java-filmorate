@@ -180,6 +180,54 @@ public class FilmDbStorage implements FilmStorage {
         return films;
     }
 
+    @Override
+    public List<Film> searchFilms(String query, boolean searchByTitle, boolean searchByDirector) {
+        String sql = "SELECT f.*, m.name AS mpa_name, COUNT(l.user_id) AS likes_count " +
+                "FROM films f " +
+                "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "LEFT JOIN likes l ON f.id = l.film_id ";
+
+        if (searchByDirector) {
+            sql += "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
+                    "LEFT JOIN directors d ON fd.director_id = d.id ";
+        }
+
+        sql += "WHERE ";
+
+        List<String> conditions = new ArrayList<>();
+        if (searchByTitle) {
+            conditions.add("LOWER(f.name) LIKE LOWER(?)");
+        }
+        if (searchByDirector) {
+            conditions.add("LOWER(d.name) LIKE LOWER(?)");
+        }
+
+        sql += String.join(" OR ", conditions);
+        sql += " GROUP BY f.id, m.name ORDER BY likes_count DESC";
+
+        String searchPattern = "%" + query + "%";
+
+        List<Film> films = jdbcTemplate.query(sql,
+                ps -> {
+                    int index = 1;
+                    if (searchByTitle) {
+                        ps.setString(index++, searchPattern);
+                    }
+                    if (searchByDirector) {
+                        ps.setString(index, searchPattern);
+                    }
+                },
+                this::mapRowToFilm
+        );
+
+        if (!films.isEmpty()) {
+            loadGenresForFilms(films);
+            loadDirectorsForFilms(films);
+        }
+
+        return films;
+    }
+
     private Map<String, Object> filmToMap(Film film) {
 
         Objects.requireNonNull(film.getName(), "Название фильма не может быть null");
