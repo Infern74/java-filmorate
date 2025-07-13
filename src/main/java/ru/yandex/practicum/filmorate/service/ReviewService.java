@@ -26,14 +26,14 @@ public class ReviewService {
         validateUserAndFilm(review.getUserId(), review.getFilmId());
         Review created = reviewStorage.create(review);
         eventLogger.log(created.getUserId(), EventType.REVIEW, OperationType.ADD, created.getReviewId());
-        return created;
+        return getById(review.getReviewId());
     }
 
     public Review update(Review review) {
 
         Review updated = reviewStorage.update(review);
-        eventLogger.log(updated.getUserId(), EventType.REVIEW, OperationType.UPDATE, updated.getReviewId());
-        return updated;
+        eventLogger.log(getById(review.getReviewId()).getUserId(), EventType.REVIEW, OperationType.UPDATE, updated.getReviewId());
+        return getById(review.getReviewId());
     }
 
     public void delete(int id) {
@@ -54,7 +54,9 @@ public class ReviewService {
     }
 
     public List<Review> getReviewsByFilmId(Integer filmId, int count) {
-        filmStorage.getById(filmId);
+        if (filmId != null) {
+            filmStorage.getById(filmId);
+        }
         return reviewStorage.getReviewsByFilmId(filmId, count);
     }
 

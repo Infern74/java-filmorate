@@ -212,6 +212,7 @@ public class FilmDbStorage implements FilmStorage {
         }, this::mapRowToFilm);
 
         loadGenresForFilms(films);
+        loadDirectorsForFilms(films);
         return films;
     }
 

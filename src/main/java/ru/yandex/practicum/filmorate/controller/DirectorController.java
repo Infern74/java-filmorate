@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.service.DirectorService;
 
@@ -32,12 +33,14 @@ public class DirectorController {
     @ResponseStatus(HttpStatus.CREATED)
     public Director create(@RequestBody Director director) {
         log.info("Получен запрос на создание режиссера: {}", director);
+        validateDirector(director);
         return directorService.create(director);
     }
 
     @PutMapping
     public Director update(@RequestBody Director director) {
         log.info("Получен запрос на обновление режиссера: {}", director);
+        validateDirector(director);
         return directorService.update(director);
     }
 
@@ -46,5 +49,14 @@ public class DirectorController {
     public void delete(@PathVariable int id) {
         log.info("Получен запрос на удаление режиссера с id={}", id);
         directorService.delete(id);
+    }
+
+    private void validateDirector(Director director) {
+        if (director.getName() == null || director.getName().isBlank()) {
+            throw new ValidationException("Имя режиссера не может быть пустым");
+        }
+        if (director.getName().length() > 255) {
+            throw new ValidationException("Имя режиссера не может быть длиннее 255 символов");
+        }
     }
 }
