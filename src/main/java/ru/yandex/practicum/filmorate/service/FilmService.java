@@ -57,6 +57,12 @@ public class FilmService {
         eventLogger.log(userId, EventType.LIKE, OperationType.REMOVE, filmId);
     }
 
+    public List<Film> getCommonFilms(int userId, int friendId) {
+        userStorage.getById(userId);
+        userStorage.getById(friendId);
+        return filmStorage.getCommonFilms(userId, friendId);
+    }
+
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         return filmStorage.getPopularFilms(count, genreId, year);
     }
