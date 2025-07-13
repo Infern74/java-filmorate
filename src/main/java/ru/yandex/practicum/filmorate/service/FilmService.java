@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.OperationType;
@@ -11,8 +12,7 @@ import ru.yandex.practicum.filmorate.storage.dao.LikeDao;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -80,6 +80,18 @@ public class FilmService {
         } else {
             return filmStorage.getFilmsByDirectorSortedByLikes(directorId);
         }
+    }
+
+    public List<Film> searchFilms(String query, String[] by) {
+        Set<String> searchParams = new HashSet<>(Arrays.asList(by));
+        boolean searchByTitle = searchParams.contains("title");
+        boolean searchByDirector = searchParams.contains("director");
+
+        if (!searchByTitle && !searchByDirector) {
+            throw new ValidationException("Параметр 'by' должен содержать 'title' и/или 'director'");
+        }
+
+        return filmStorage.searchFilms(query, searchByTitle, searchByDirector);
     }
 
     public void delete(int id) {
