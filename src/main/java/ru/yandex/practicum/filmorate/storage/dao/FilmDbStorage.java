@@ -82,10 +82,18 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film delete(int id) {
-        Film film = getById(id);
-        String sql = "DELETE FROM films WHERE id = ?";
-        jdbcTemplate.update(sql, id);
+        Film film = getById(id); // Проверяем существование
+        deleteFilm(id); // Используем новую реализацию
         return film;
+    }
+
+    @Override
+    public void deleteFilm(int id) {
+        String sql = "DELETE FROM films WHERE id = ?";
+        int deleted = jdbcTemplate.update(sql, id);
+        if (deleted == 0) {
+            throw new FilmNotFoundException("Фильм с id=" + id + " не найден");
+        }
     }
 
     @Override

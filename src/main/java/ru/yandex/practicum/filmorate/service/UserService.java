@@ -83,4 +83,15 @@ public class UserService {
     private User getUserOrThrow(int id) {
         return userStorage.getById(id);
     }
+
+    public void delete(int id) {
+        userStorage.deleteUser(id); // Используем новый метод
+    }
+
+    @Deprecated
+    public User deleteAndReturn(int id) {
+        User user = userStorage.getById(id);
+        userStorage.deleteUser(id);
+        return user;
+    }
 }
