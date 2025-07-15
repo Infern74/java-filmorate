@@ -266,13 +266,6 @@ public class FilmDbStorage implements FilmStorage {
 
     private Map<String, Object> filmToMap(Film film) {
 
-        Objects.requireNonNull(film.getName(), "Название фильма не может быть null");
-        Objects.requireNonNull(film.getDescription(), "Описание фильма не может быть null");
-        Objects.requireNonNull(film.getReleaseDate(), "Дата выхода фильма не может быть null");
-        Objects.requireNonNull(film.getDuration(), "Длительность фильма не может быть null");
-        Objects.requireNonNull(film.getMpa(), "Рейтинг MPA фильма не может быть null");
-        Objects.requireNonNull(film.getMpa().getId(), "ID рейтинга MPA не может быть null");
-
         return Map.of(
                 "name", film.getName(),
                 "description", film.getDescription(),
