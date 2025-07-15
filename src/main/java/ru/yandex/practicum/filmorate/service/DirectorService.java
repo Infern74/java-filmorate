@@ -25,16 +25,12 @@ public class DirectorService {
     }
 
     public Director update(Director director) {
-
-        // Проверяем существование режиссера перед обновлением
-        getById(director.getId()); // Если режиссер не найден, выбросит DirectorNotFoundException
+        getById(director.getId());
         return directorStorage.update(director);
     }
 
     public void delete(int id) {
-
-        // Проверяем существование режиссера перед удалением
-        getById(id); // Если режиссер не найден, выбросит DirectorNotFoundException
+        getById(id);
         directorStorage.delete(id);
     }
 }

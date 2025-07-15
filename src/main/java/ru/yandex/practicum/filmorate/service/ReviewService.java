@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.OperationType;
 import ru.yandex.practicum.filmorate.model.Review;
@@ -15,6 +16,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
+    @Qualifier("reviewDbStorage")
     private final ReviewStorage reviewStorage;
     @Qualifier("userDbStorage")
     private final UserStorage userStorage;
@@ -30,9 +32,16 @@ public class ReviewService {
     }
 
     public Review update(Review review) {
+        Review existingReview = getById(review.getReviewId());
+        reviewStorage.update(review);
 
-        Review updated = reviewStorage.update(review);
-        eventLogger.log(getById(review.getReviewId()).getUserId(), EventType.REVIEW, OperationType.UPDATE, updated.getReviewId());
+        eventLogger.log(
+                existingReview.getUserId(),
+                EventType.REVIEW,
+                OperationType.UPDATE,
+                review.getReviewId()
+        );
+
         return getById(review.getReviewId());
     }
 
@@ -54,9 +63,14 @@ public class ReviewService {
     }
 
     public List<Review> getReviewsByFilmId(Integer filmId, int count) {
+        if (count <= 0) {
+            throw new ValidationException("Параметр count должен быть положительным числом");
+        }
+
         if (filmId != null) {
             filmStorage.getById(filmId);
         }
+
         return reviewStorage.getReviewsByFilmId(filmId, count);
     }
 

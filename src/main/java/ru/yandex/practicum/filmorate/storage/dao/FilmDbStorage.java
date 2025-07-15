@@ -82,8 +82,8 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film delete(int id) {
-        Film film = getById(id); // Проверяем существование
-        deleteFilm(id); // Используем новую реализацию
+        Film film = getById(id);
+        deleteFilm(id);
         return film;
     }
 

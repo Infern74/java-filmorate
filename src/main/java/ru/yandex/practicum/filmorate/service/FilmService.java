@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.EventType;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -58,27 +57,35 @@ public class FilmService {
     }
 
     public List<Film> getCommonFilms(int userId, int friendId) {
-        userStorage.getById(userId);
-        userStorage.getById(friendId);
+        getUserOrThrow(userId);
+        getUserOrThrow(friendId);
         return filmStorage.getCommonFilms(userId, friendId);
     }
 
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        if (count <= 0) {
+            throw new ValidationException("Параметр count должен быть положительным числом");
+        }
+
+        if (genreId != null && genreId <= 0) {
+            throw new ValidationException("ID жанра должно быть положительным числом");
+        }
+
+        if (year != null && year < 1895) {
+            throw new ValidationException("Год не может быть раньше 1895");
+        }
         return filmStorage.getPopularFilms(count, genreId, year);
     }
 
-    private Film getFilmOrThrow(int id) {
-        return filmStorage.getById(id);
+    private void getFilmOrThrow(int id) {
+        filmStorage.getById(id);
     }
 
     private void getUserOrThrow(int id) {
-        if (userStorage.getById(id) == null) {
-            throw new UserNotFoundException("Пользователь с id=" + id + " не найден");
-        }
+        userStorage.getById(id);
     }
 
     public List<Film> getFilmsByDirector(int directorId, String sortBy) {
-        // Проверка что режиссер существует
         directorService.getById(directorId);
 
         if (sortBy.equals("year")) {
@@ -101,7 +108,8 @@ public class FilmService {
     }
 
     public void delete(int id) {
-        filmStorage.deleteFilm(id); // Используем новый метод
+        getFilmOrThrow(id);
+        filmStorage.deleteFilm(id);
     }
 
     @Deprecated

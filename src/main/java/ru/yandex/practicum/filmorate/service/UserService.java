@@ -80,12 +80,13 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    private User getUserOrThrow(int id) {
-        return userStorage.getById(id);
+    private void getUserOrThrow(int id) {
+        userStorage.getById(id);
     }
 
     public void delete(int id) {
-        userStorage.deleteUser(id); // Используем новый метод
+        getUserOrThrow(id);
+        userStorage.deleteUser(id);
     }
 
     @Deprecated
