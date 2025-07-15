@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
@@ -47,7 +48,7 @@ public class FilmDbStorage implements FilmStorage {
             updateFilmDirectors(film);
         }
 
-        return film;
+        return getById(id);
     }
 
     @Override
@@ -76,15 +77,23 @@ public class FilmDbStorage implements FilmStorage {
             updateFilmDirectors(film);
         }
 
-        return film;
+        return getById(film.getId());
     }
 
     @Override
     public Film delete(int id) {
-        Film film = getById(id);
-        String sql = "DELETE FROM films WHERE id = ?";
-        jdbcTemplate.update(sql, id);
+        Film film = getById(id); // Проверяем существование
+        deleteFilm(id); // Используем новую реализацию
         return film;
+    }
+
+    @Override
+    public void deleteFilm(int id) {
+        String sql = "DELETE FROM films WHERE id = ?";
+        int deleted = jdbcTemplate.update(sql, id);
+        if (deleted == 0) {
+            throw new FilmNotFoundException("Фильм с id=" + id + " не найден");
+        }
     }
 
     @Override
@@ -103,12 +112,14 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Film getById(int id) {
         String sql = "SELECT f.*, m.name AS mpa_name FROM films f JOIN mpa_ratings m ON f.mpa_rating_id = m.id WHERE f.id = ?";
-        Film film = jdbcTemplate.queryForObject(sql, this::mapRowToFilm, id);
-
-        loadGenresForFilms(List.of(film));
-        loadDirectorsForFilms(List.of(film));
-
-        return film;
+        try {
+            Film film = jdbcTemplate.queryForObject(sql, this::mapRowToFilm, id);
+            loadGenresForFilms(List.of(film));
+            loadDirectorsForFilms(List.of(film));
+            return film;
+        } catch (EmptyResultDataAccessException e) {
+            throw new FilmNotFoundException("Фильм с id=" + id + " не найден");
+        }
     }
 
     @Override
@@ -152,6 +163,30 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public List<Film> getCommonFilms(int userId, int friendId) {
+        String sql = "SELECT f.*, m.name AS mpa_name, COUNT(l.user_id) AS likes_count " +
+                "FROM films f " +
+                "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "JOIN likes l ON f.id = l.film_id " +
+                "WHERE f.id IN ( " +
+                "    SELECT film_id FROM likes WHERE user_id = ? " +
+                "    INTERSECT " +
+                "    SELECT film_id FROM likes WHERE user_id = ? " +
+                ") " +
+                "GROUP BY f.id, m.name " +
+                "ORDER BY likes_count DESC";
+
+        List<Film> films = jdbcTemplate.query(sql, this::mapRowToFilm, userId, friendId);
+
+        if (!films.isEmpty()) {
+            loadGenresForFilms(films);
+            loadDirectorsForFilms(films);
+        }
+
+        return films;
+    }
+
+    @Override
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         String sql = "SELECT f.*, m.name AS mpa_name, COUNT(l.user_id) AS likes_count " +
                 "FROM films f " +
@@ -177,17 +212,59 @@ public class FilmDbStorage implements FilmStorage {
         }, this::mapRowToFilm);
 
         loadGenresForFilms(films);
+        loadDirectorsForFilms(films);
+        return films;
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, boolean searchByTitle, boolean searchByDirector) {
+        String sql = "SELECT f.*, m.name AS mpa_name, COUNT(l.user_id) AS likes_count " +
+                "FROM films f " +
+                "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
+                "LEFT JOIN likes l ON f.id = l.film_id ";
+
+        if (searchByDirector) {
+            sql += "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
+                    "LEFT JOIN directors d ON fd.director_id = d.id ";
+        }
+
+        sql += "WHERE ";
+
+        List<String> conditions = new ArrayList<>();
+        if (searchByTitle) {
+            conditions.add("LOWER(f.name) LIKE LOWER(?)");
+        }
+        if (searchByDirector) {
+            conditions.add("LOWER(d.name) LIKE LOWER(?)");
+        }
+
+        sql += String.join(" OR ", conditions);
+        sql += " GROUP BY f.id, m.name ORDER BY likes_count DESC";
+
+        String searchPattern = "%" + query + "%";
+
+        List<Film> films = jdbcTemplate.query(sql,
+                ps -> {
+                    int index = 1;
+                    if (searchByTitle) {
+                        ps.setString(index++, searchPattern);
+                    }
+                    if (searchByDirector) {
+                        ps.setString(index, searchPattern);
+                    }
+                },
+                this::mapRowToFilm
+        );
+
+        if (!films.isEmpty()) {
+            loadGenresForFilms(films);
+            loadDirectorsForFilms(films);
+        }
+
         return films;
     }
 
     private Map<String, Object> filmToMap(Film film) {
-
-        Objects.requireNonNull(film.getName(), "Название фильма не может быть null");
-        Objects.requireNonNull(film.getDescription(), "Описание фильма не может быть null");
-        Objects.requireNonNull(film.getReleaseDate(), "Дата выхода фильма не может быть null");
-        Objects.requireNonNull(film.getDuration(), "Длительность фильма не может быть null");
-        Objects.requireNonNull(film.getMpa(), "Рейтинг MPA фильма не может быть null");
-        Objects.requireNonNull(film.getMpa().getId(), "ID рейтинга MPA не может быть null");
 
         return Map.of(
                 "name", film.getName(),
@@ -276,7 +353,7 @@ public class FilmDbStorage implements FilmStorage {
 
             Genre genre = allGenres.get(genreId);
             if (genre != null) {
-                genresByFilmId.computeIfAbsent(filmId, k -> new HashSet<>())
+                genresByFilmId.computeIfAbsent(filmId, k -> new LinkedHashSet<>())
                         .add(genre);
             }
         }

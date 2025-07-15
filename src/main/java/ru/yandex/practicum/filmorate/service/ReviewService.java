@@ -1,8 +1,10 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.OperationType;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
@@ -11,31 +13,40 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ReviewService {
     private final ReviewStorage reviewStorage;
+    @Qualifier("userDbStorage")
     private final UserStorage userStorage;
+    @Qualifier("filmDbStorage")
     private final FilmStorage filmStorage;
-
-    @Autowired
-    public ReviewService(ReviewStorage reviewStorage,
-                         @Qualifier("filmDbStorage") FilmStorage filmStorage,
-                         @Qualifier("userDbStorage") UserStorage userStorage) {
-        this.reviewStorage = reviewStorage;
-        this.userStorage = userStorage;
-        this.filmStorage = filmStorage;
-    }
+    private final EventLogger eventLogger;
 
     public Review create(Review review) {
         validateUserAndFilm(review.getUserId(), review.getFilmId());
-        return reviewStorage.create(review);
+        Review created = reviewStorage.create(review);
+        eventLogger.log(created.getUserId(), EventType.REVIEW, OperationType.ADD, created.getReviewId());
+        return getById(review.getReviewId());
     }
 
     public Review update(Review review) {
-        return reviewStorage.update(review);
+
+        Review updated = reviewStorage.update(review);
+        eventLogger.log(getById(review.getReviewId()).getUserId(), EventType.REVIEW, OperationType.UPDATE, updated.getReviewId());
+        return getById(review.getReviewId());
     }
 
     public void delete(int id) {
+        Review deleted = getById(id);
+
         reviewStorage.delete(id);
+
+        eventLogger.log(
+                deleted.getUserId(),
+                EventType.REVIEW,
+                OperationType.REMOVE,
+                id
+        );
     }
 
     public Review getById(int id) {
@@ -43,7 +54,9 @@ public class ReviewService {
     }
 
     public List<Review> getReviewsByFilmId(Integer filmId, int count) {
-        filmStorage.getById(filmId);
+        if (filmId != null) {
+            filmStorage.getById(filmId);
+        }
         return reviewStorage.getReviewsByFilmId(filmId, count);
     }
 
