@@ -133,7 +133,14 @@ public class FilmDbStorage implements FilmStorage {
                 "JOIN mpa_ratings m ON f.mpa_rating_id = m.id " +
                 "WHERE f.id IN (:ids)";
         Map<String, Object> params = Map.of("ids", ids);
-        return namedParameterJdbcTemplate.query(sql, params, this::mapRowToFilm);
+        List<Film> films = namedParameterJdbcTemplate.query(sql, params, this::mapRowToFilm);
+
+        if (!films.isEmpty()) {
+            loadGenresForFilms(films);
+            loadDirectorsForFilms(films);
+        }
+
+        return films;
     }
 
     @Override
