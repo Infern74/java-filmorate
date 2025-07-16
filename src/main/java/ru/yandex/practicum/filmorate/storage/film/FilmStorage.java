@@ -4,6 +4,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public interface FilmStorage {
 
@@ -18,6 +19,8 @@ public interface FilmStorage {
     Collection<Film> getAll();
 
     Film getById(int id);
+
+    public List<Film> getByIds(Set<Integer> ids);
 
     List<Film> getFilmsByDirectorSortedByYear(int directorId);
 

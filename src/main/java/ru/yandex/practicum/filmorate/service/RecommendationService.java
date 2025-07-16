@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.dao.RecommendationDao;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,42 +15,52 @@ import java.util.stream.Collectors;
 public class RecommendationService {
     private final RecommendationDao recommendationDao;
     private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
 
     public List<Film> getRecommendations(int userId) {
-        Map<Integer, Set<Integer>> userLikes = recommendationDao.getUserLikes();
+        userStorage.getById(userId);
 
+        Map<Integer, Set<Integer>> userLikes = recommendationDao.getUserLikes();
         Set<Integer> targetLikes = userLikes.getOrDefault(userId, Collections.emptySet());
 
-        int bestMatchUserId = -1;
-        int maxOverlap = 0;
-
-        for (Map.Entry<Integer, Set<Integer>> entry : userLikes.entrySet()) {
-            if (entry.getKey() == userId) continue;
-
-            Set<Integer> otherLikes = entry.getValue();
-
-            Set<Integer> intersection = new HashSet<>(targetLikes);
-            intersection.retainAll(otherLikes);
-            int overlap = intersection.size();
-
-            if (overlap > maxOverlap) {
-                maxOverlap = overlap;
-                bestMatchUserId = entry.getKey();
-            }
-        }
-
-        if (bestMatchUserId == -1) {
+        if (targetLikes.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Set<Integer> bestMatchLikes = userLikes.get(bestMatchUserId);
-
-        Set<Integer> recommendations = new HashSet<>(bestMatchLikes);
-        recommendations.removeAll(targetLikes);
-
-        return recommendations.stream()
-                .map(filmStorage::getById)
+        // найдём похожих пользователей с пересечением лайков
+        List<Integer> similarUsers = userLikes.entrySet().stream()
+                .filter(entry -> entry.getKey() != userId)
+                .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), overlap(targetLikes, entry.getValue())))
+                .filter(entry -> entry.getValue() > 0)
+                .sorted(Map.Entry.<Integer, Integer>comparingByValue().reversed())
+                .limit(10) // ограничение на количество похожих пользователей
+                .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
+
+        if (similarUsers.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // собираем рекомендации от всех похожих пользователей
+        Set<Integer> recommendedFilmIds = similarUsers.stream()
+                .map(userLikes::get)
+                .filter(Objects::nonNull)
+                .flatMap(Set::stream)
+                .filter(filmId -> !targetLikes.contains(filmId)) // исключаем уже лайкнутые
+                .collect(Collectors.toSet());
+
+        if (recommendedFilmIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // загружаем фильмы списком
+        return filmStorage.getByIds(recommendedFilmIds);
+    }
+
+    private int overlap(Set<Integer> a, Set<Integer> b) {
+        Set<Integer> copy = new HashSet<>(a);
+        copy.retainAll(b);
+        return copy.size();
     }
 }
 
