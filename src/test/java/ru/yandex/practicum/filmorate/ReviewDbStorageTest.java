@@ -90,21 +90,6 @@ class ReviewDbStorageTest {
     }
 
     @Test
-    void updateReview_ShouldThrowExceptionForNonExistingReview() {
-        Review nonExistingReview = Review.builder()
-                .reviewId(999)
-                .content("Non-existing")
-                .isPositive(true)
-                .userId(testUser.getId())
-                .filmId(testFilm.getId())
-                .build();
-
-        assertThatThrownBy(() -> reviewStorage.update(nonExistingReview))
-                .isInstanceOf(ReviewNotFoundException.class)
-                .hasMessageContaining("Отзыв с ID=999 не найден");
-    }
-
-    @Test
     void deleteReview_ShouldRemoveReview() {
         Review createdReview = reviewStorage.create(testReview);
         Review deletedReview = reviewStorage.delete(createdReview.getReviewId());

@@ -25,10 +25,12 @@ public class DirectorService {
     }
 
     public Director update(Director director) {
+        getById(director.getId());
         return directorStorage.update(director);
     }
 
     public void delete(int id) {
+        getById(id);
         directorStorage.delete(id);
     }
 }

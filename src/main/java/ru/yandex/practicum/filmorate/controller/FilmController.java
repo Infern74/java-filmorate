@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.DirectorNotFoundException;
 import ru.yandex.practicum.filmorate.exception.GenreNotFoundException;
@@ -16,6 +17,7 @@ import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -73,6 +75,14 @@ public class FilmController {
         return filmService.getById(id);
     }
 
+    @GetMapping("/common")
+    public List<Film> getCommonFilms(
+            @RequestParam int userId,
+            @RequestParam int friendId) {
+        log.info("Запрос общих фильмов от пользователя {} с другом {}", userId, friendId);
+        return filmService.getCommonFilms(userId, friendId);
+    }
+
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable int id, @PathVariable int userId) {
         log.info("Запрос на добавление лайка фильму {} от пользователя {}", id, userId);
@@ -84,6 +94,13 @@ public class FilmController {
     public void removeLike(@PathVariable int id, @PathVariable int userId) {
         filmService.removeLike(id, userId);
         log.info("Пользователь {} убрал лайк с фильма {}", userId, id);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFilm(@PathVariable int id) {
+        log.info("Запрос на удаление фильма с id={}", id);
+        filmService.delete(id);
     }
 
     @GetMapping("/popular")
@@ -107,6 +124,14 @@ public class FilmController {
         }
 
         return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
+    @GetMapping("/search")
+    public List<Film> searchFilms(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "title,director") String[] by) {
+        log.info("Поиск фильмов по запросу: '{}', параметры поиска: {}", query, Arrays.toString(by));
+        return filmService.searchFilms(query, by);
     }
 
     private void validateFilm(Film film) {
