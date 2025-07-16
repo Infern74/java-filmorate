@@ -14,6 +14,8 @@ public interface FilmStorage {
 
     Film delete(int id);
 
+    void deleteFilm(int id);
+
     Collection<Film> getAll();
 
     Film getById(int id);
@@ -25,4 +27,8 @@ public interface FilmStorage {
     List<Film> getFilmsByDirectorSortedByLikes(int directorId);
 
     List<Film> getPopularFilms(int count, Integer genreId, Integer year);
+
+    List<Film> getCommonFilms(int userId, int friendId);
+
+    List<Film> searchFilms(String query, boolean searchByTitle, boolean searchByDirector);
 }

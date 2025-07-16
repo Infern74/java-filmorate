@@ -80,7 +80,19 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    private User getUserOrThrow(int id) {
-        return userStorage.getById(id);
+    private void getUserOrThrow(int id) {
+        userStorage.getById(id);
+    }
+
+    public void delete(int id) {
+        getUserOrThrow(id);
+        userStorage.deleteUser(id);
+    }
+
+    @Deprecated
+    public User deleteAndReturn(int id) {
+        User user = userStorage.getById(id);
+        userStorage.deleteUser(id);
+        return user;
     }
 }
