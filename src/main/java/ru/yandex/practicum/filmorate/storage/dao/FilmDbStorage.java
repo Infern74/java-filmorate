@@ -28,10 +28,10 @@ public class FilmDbStorage implements FilmStorage {
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Autowired
-    public FilmDbStorage(JdbcTemplate jdbcTemplate, GenreDbStorage genreDbStorage,NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, GenreDbStorage genreDbStorage, NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.genreDbStorage = genreDbStorage;
-        this.namedParameterJdbcTemplate=namedParameterJdbcTemplate;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     @Override
@@ -113,7 +113,6 @@ public class FilmDbStorage implements FilmStorage {
 
         return film;
     }
-
 
     @Override
     public List<Film> getByIds(Set<Integer> ids) {
