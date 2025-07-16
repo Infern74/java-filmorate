@@ -1,8 +1,10 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.OperationType;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.dao.FriendshipDao;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -13,17 +15,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
+    @Qualifier("userDbStorage")
     private final UserStorage userStorage;
     private final FriendshipDao friendshipDao;
-
-    @Autowired
-    public UserService(
-            @Qualifier("userDbStorage") UserStorage userStorage,
-            FriendshipDao friendshipDao) {
-        this.userStorage = userStorage;
-        this.friendshipDao = friendshipDao;
-    }
+    private final EventLogger eventLogger;
 
     public User create(User user) {
         return userStorage.create(user);
@@ -45,18 +42,21 @@ public class UserService {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         friendshipDao.addFriend(userId, friendId);
+        eventLogger.log(userId, EventType.FRIEND, OperationType.ADD, friendId);
     }
 
     public void confirmFriend(int userId, int friendId) {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         friendshipDao.confirmFriend(userId, friendId);
+        eventLogger.log(userId, EventType.FRIEND, OperationType.UPDATE, friendId);
     }
 
     public void removeFriend(int userId, int friendId) {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         friendshipDao.removeFriend(userId, friendId);
+        eventLogger.log(userId, EventType.FRIEND, OperationType.REMOVE, friendId);
     }
 
     public List<User> getFriends(int userId) {
@@ -80,7 +80,19 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    private User getUserOrThrow(int id) {
-        return userStorage.getById(id);
+    private void getUserOrThrow(int id) {
+        userStorage.getById(id);
+    }
+
+    public void delete(int id) {
+        getUserOrThrow(id);
+        userStorage.deleteUser(id);
+    }
+
+    @Deprecated
+    public User deleteAndReturn(int id) {
+        User user = userStorage.getById(id);
+        userStorage.deleteUser(id);
+        return user;
     }
 }

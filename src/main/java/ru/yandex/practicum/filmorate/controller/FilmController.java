@@ -2,17 +2,22 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.DirectorNotFoundException;
 import ru.yandex.practicum.filmorate.exception.GenreNotFoundException;
 import ru.yandex.practicum.filmorate.exception.MpaNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.DirectorService;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -25,13 +30,15 @@ public class FilmController {
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
     private static final LocalDate CINEMA_BIRTHDAY = LocalDate.of(1895, 12, 28);
+    private final DirectorService directorService;
 
     @Autowired
     public FilmController(FilmService filmService, MpaStorage mpaStorage,
-                          GenreStorage genreStorage) {
+                          GenreStorage genreStorage, DirectorService directorService) {
         this.filmService = filmService;
         this.mpaStorage = mpaStorage;
         this.genreStorage = genreStorage;
+        this.directorService = directorService;
     }
 
     @PostMapping
@@ -40,6 +47,7 @@ public class FilmController {
         validateFilm(film);
         validateMpa(film.getMpa().getId());
         validateGenres(film.getGenres());
+        validateDirectors(film.getDirectors());
         Film createdFilm = filmService.create(film);
         log.info("Создан новый фильм: {}", createdFilm);
         return createdFilm;
@@ -51,6 +59,7 @@ public class FilmController {
         validateFilm(film);
         validateMpa(film.getMpa().getId());
         validateGenres(film.getGenres());
+        validateDirectors(film.getDirectors());
         Film updatedFilm = filmService.update(film);
         log.info("Обновлен фильм: {}", updatedFilm);
         return updatedFilm;
@@ -66,6 +75,14 @@ public class FilmController {
         return filmService.getById(id);
     }
 
+    @GetMapping("/common")
+    public List<Film> getCommonFilms(
+            @RequestParam int userId,
+            @RequestParam int friendId) {
+        log.info("Запрос общих фильмов от пользователя {} с другом {}", userId, friendId);
+        return filmService.getCommonFilms(userId, friendId);
+    }
+
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable int id, @PathVariable int userId) {
         log.info("Запрос на добавление лайка фильму {} от пользователя {}", id, userId);
@@ -79,11 +96,42 @@ public class FilmController {
         log.info("Пользователь {} убрал лайк с фильма {}", userId, id);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFilm(@PathVariable int id) {
+        log.info("Запрос на удаление фильма с id={}", id);
+        filmService.delete(id);
+    }
+
     @GetMapping("/popular")
     public List<Film> getPopular(
-            @RequestParam(defaultValue = "10") int count) {
-        log.info("Запрос {} популярных фильмов", count);
-        return filmService.getPopularFilms(count);
+            @RequestParam(defaultValue = "10") int count,
+            @RequestParam(required = false) Integer genreId,
+            @RequestParam(required = false) Integer year) {
+        log.info("Запрос {} популярных фильмов, genreId: {}, year: {}", count, genreId, year);
+        return filmService.getPopularFilms(count, genreId, year);
+    }
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getFilmsByDirector(
+            @PathVariable int directorId,
+            @RequestParam(defaultValue = "likes") String sortBy) {
+
+        log.info("Запрос фильмов режиссера {} с сортировкой по {}", directorId, sortBy);
+
+        if (!sortBy.equals("year") && !sortBy.equals("likes")) {
+            throw new ValidationException("Параметр sortBy может быть только 'year' или 'likes'");
+        }
+
+        return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
+    @GetMapping("/search")
+    public List<Film> searchFilms(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "title,director") String[] by) {
+        log.info("Поиск фильмов по запросу: '{}', параметры поиска: {}", query, Arrays.toString(by));
+        return filmService.searchFilms(query, by);
     }
 
     private void validateFilm(Film film) {
@@ -124,6 +172,18 @@ public class FilmController {
                     genreStorage.getById(genre.getId());
                 } catch (GenreNotFoundException e) {
                     throw new GenreNotFoundException("Жанр с id=" + genre.getId() + " не найден");
+                }
+            }
+        }
+    }
+
+    private void validateDirectors(Set<Director> directors) {
+        if (directors != null) {
+            for (Director director : directors) {
+                try {
+                    directorService.getById(director.getId());
+                } catch (DirectorNotFoundException e) {
+                    throw new DirectorNotFoundException("Режиссер с id=" + director.getId() + " не найден");
                 }
             }
         }

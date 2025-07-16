@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.storage.film;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 public interface FilmStorage {
 
@@ -12,8 +14,21 @@ public interface FilmStorage {
 
     Film delete(int id);
 
+    void deleteFilm(int id);
+
     Collection<Film> getAll();
 
     Film getById(int id);
 
+    public List<Film> getByIds(Set<Integer> ids);
+
+    List<Film> getFilmsByDirectorSortedByYear(int directorId);
+
+    List<Film> getFilmsByDirectorSortedByLikes(int directorId);
+
+    List<Film> getPopularFilms(int count, Integer genreId, Integer year);
+
+    List<Film> getCommonFilms(int userId, int friendId);
+
+    List<Film> searchFilms(String query, boolean searchByTitle, boolean searchByDirector);
 }
