@@ -73,8 +73,6 @@ docker-compose up -d  # если есть docker-compose.yml
 ### Database Schema
 ![ER Diagram](schema_diagram.png)
 
-[Interactive Diagram](https://dbdiagram.io/d/68596f21f039ec6d367ef618)
-
 ### Основные таблицы:
 * users — информация о пользователях
 
